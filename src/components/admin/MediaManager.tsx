@@ -1,0 +1,34 @@
+"use client";
+
+import { useState } from "react";
+import NextImage from "next/image";
+import { Copy, ImageIcon, Pencil, Search, Trash2, Upload } from "lucide-react";
+import type { MediaAsset } from "@/lib/types";
+import { adminApi, dateLabel, errorMessage, useResource } from "./api";
+import { Badge, Empty, Field, Loading, Modal, Notice, PageHeading } from "./ui";
+import s from "./admin.module.css";
+
+export function MediaManager() {
+  const { data, error, loading, refresh } = useResource<{ items: MediaAsset[] }>("/api/admin/media");
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("");
+  const [editing, setEditing] = useState<MediaAsset | "new" | null>(null);
+  const [alt, setAlt] = useState(""); const [credit, setCredit] = useState(""); const [license, setLicense] = useState(""); const [visibility, setVisibility] = useState("PRIVATE"); const [file, setFile] = useState<File | null>(null);
+  const [busy, setBusy] = useState(false); const [message, setMessage] = useState(""); const [failure, setFailure] = useState("");
+  function open(item: MediaAsset | "new") { setEditing(item); setFailure(""); setFile(null); setAlt(item === "new" ? "" : item.alt); setCredit(item === "new" ? "" : item.credit); setLicense(item === "new" ? "" : item.license); setVisibility(item === "new" ? "PRIVATE" : item.visibility); }
+  async function save() {
+    if (!editing) return;
+    setBusy(true); setFailure("");
+    try {
+      if (editing === "new") { if (!file) throw new Error("Choose an image to upload."); const form = new FormData(); form.append("file", file); form.append("alt", alt); form.append("credit", credit); form.append("license", license); await adminApi("/api/admin/media", { method: "POST", body: form }); }
+      else await adminApi(`/api/admin/media/${editing.id}`, { method: "PATCH", body: JSON.stringify({ alt, credit, license, visibility }) });
+      setMessage(editing === "new" ? "Image uploaded to your private media library." : "Image details saved."); setEditing(null); await refresh();
+    } catch (e) { setFailure(errorMessage(e)); } finally { setBusy(false); }
+  }
+  async function remove(item: MediaAsset) { if (!window.confirm(`Delete “${item.filename}”? Images used by published content cannot be deleted.`)) return; try { await adminApi(`/api/admin/media/${item.id}`, { method: "DELETE" }); setMessage("Image deleted."); await refresh(); } catch (e) { setFailure(errorMessage(e)); } }
+  const items = (data?.items || []).filter(item => `${item.filename} ${item.alt}`.toLowerCase().includes(search.toLowerCase()) && (!filter || item.visibility === filter));
+  return <><PageHeading title="Media library" description="Original images, clear credits, and accessible descriptions—all in one place."><button className={s.button} onClick={() => open("new")}><Upload size={16} />Upload image</button></PageHeading><Notice message={message} /><Notice message={error || (!editing ? failure : "")} error /><div className={s.card}><div className={s.filters}><div className={s.search}><Search size={16} /><input className={s.input} aria-label="Search media" placeholder="Search filenames or descriptions…" value={search} onChange={e => setSearch(e.target.value)} /></div><select className={s.select} aria-label="Media visibility" value={filter} onChange={e => setFilter(e.target.value)}><option value="">All images</option><option value="PRIVATE">Private drafts</option><option value="PUBLIC">Public images</option></select></div></div>{loading ? <Loading /> : !items.length ? <div className={s.card}><Empty title="Room for a better picture" description="Upload imagery you own or have permission to use. New uploads remain private until you make them public." /></div> : <div className={s.mediaGrid}>{items.map(item => <article className={s.mediaCard} key={item.id}><div className={s.mediaVisual}>{item.contentType.startsWith("image/") ? <NextImage unoptimized width={420} height={250} src={`/api/media/${item.id}`} alt={item.alt || "Media preview"} loading="lazy" /> : <ImageIcon size={36} />}</div><div className={s.mediaDetails}><h3>{item.filename}</h3><div className={s.actionRow}><Badge value={item.visibility} /><span className={`${s.small} ${s.muted}`}>{Math.round(item.size / 1024)} KB</span></div><p className={`${s.small} ${s.muted}`}>{dateLabel(item.createdAt)}{!item.alt && " · Alt text needed"}</p><div className={s.actionRow}><button className={s.secondary} onClick={() => open(item)}><Pencil size={13} />Edit</button><button className={s.iconButton} aria-label={`Copy URL for ${item.filename}`} onClick={async () => { try { await navigator.clipboard.writeText(`/api/media/${item.id}`); setMessage("Image URL copied. Private images require an authenticated session."); } catch { setFailure("Copy failed. The image URL is /api/media/" + item.id); } }}><Copy size={15} /></button><button className={s.iconButton} aria-label={`Delete ${item.filename}`} onClick={() => void remove(item)}><Trash2 size={15} /></button></div></div></article>)}</div>}
+    {editing && <Modal title={editing === "new" ? "Upload an original image" : "Image details"} close={() => setEditing(null)} footer={<><button className={s.secondary} onClick={() => setEditing(null)}>Cancel</button><button className={s.button} disabled={busy} onClick={() => void save()}>{busy ? "Saving…" : editing === "new" ? "Upload image" : "Save details"}</button></>}><Notice message={failure} error />{editing === "new" && <Field label="Image file" hint="JPEG, PNG, WebP, or GIF. Use your own image or one you have permission to publish."><input className={s.input} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={e => setFile(e.target.files?.[0] || null)} /></Field>}<Field label="Alternative text" hint="Describe what the image communicates for readers using assistive technology."><textarea className={s.textarea} value={alt} onChange={e => setAlt(e.target.value)} /></Field><Field label="Image credit"><input className={s.input} value={credit} onChange={e => setCredit(e.target.value)} /></Field><Field label="Ownership or permission" hint="Record who owns the image and your permission to publish it."><input className={s.input} value={license} onChange={e => setLicense(e.target.value)} /></Field>{editing !== "new" && <Field label="Visibility"><select className={s.select} value={visibility} onChange={e => setVisibility(e.target.value)}><option value="PRIVATE">Private—authenticated previews only</option><option value="PUBLIC">Public—available to readers</option></select></Field>}<p className={`${s.small} ${s.muted}`}>Amazon catalog imagery must use an approved catalog integration. Do not upload copied Amazon product photos here.</p></Modal>}
+  </>;
+}
+

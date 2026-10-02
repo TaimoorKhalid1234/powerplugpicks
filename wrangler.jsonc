@@ -1,0 +1,13 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "powerplugpicks",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "powerplugpicks" }],
+  "d1_databases": [{ "binding": "DB", "database_name": "powerplugpicks", "database_id": "00000000-0000-0000-0000-000000000000", "migrations_dir": "migrations" }],
+  "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "powerplugpicks-media" }],
+  "vars": { "APP_ENV": "development", "SITE_URL": "http://localhost:3000", "BETTER_AUTH_URL": "http://localhost:3000", "ENABLE_INDEXING": "false" },
+  "observability": { "enabled": true }
+}

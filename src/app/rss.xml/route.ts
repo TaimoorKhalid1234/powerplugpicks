@@ -1,0 +1,5 @@
+import {listPublicContent,getSettings} from "@/lib/server/content";
+import {siteUrl} from "@/lib/seo";
+import {articlePath} from "@/lib/content";
+const xml=(v:string)=>v.replace(/[<>&'\"]/g,c=>({"<":"&lt;",">":"&gt;","&":"&amp;","'":"&apos;",'"':"&quot;"}[c]!));
+export async function GET(){const [list,settings,base]=await Promise.all([listPublicContent({pageSize:50}),getSettings(),siteUrl()]);const items=list.items.map(a=>{const url=base+articlePath(a.data.articleType,a.data.slug);return `<item><title>${xml(a.data.title)}</title><link>${xml(url)}</link><guid>${xml(url)}</guid><description>${xml(a.data.excerpt)}</description><pubDate>${new Date(a.publishedAt!).toUTCString()}</pubDate></item>`}).join("");return new Response(`<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>${xml(settings.brandName)}</title><link>${xml(base)}</link><description>${xml(settings.siteDescription)}</description><language>en-US</language>${items}</channel></rss>`,{headers:{"Content-Type":"application/rss+xml; charset=utf-8","Cache-Control":"no-store"}});}

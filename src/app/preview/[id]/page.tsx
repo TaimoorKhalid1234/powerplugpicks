@@ -1,0 +1,10 @@
+import Link from "next/link";
+import {notFound} from "next/navigation";
+import {requirePageUser} from "@/lib/server/auth";
+import {requireRecord} from "@/lib/server/editorial";
+import {getSettings} from "@/lib/server/content";
+import {ContentRenderer} from "@/components/content/renderer";
+import s from "@/components/public/public.module.css";
+export const dynamic="force-dynamic";
+export const metadata={title:"Private draft preview",robots:{index:false,follow:false}};
+export default async function Preview({params}:{params:Promise<{id:string}>}){const user=await requirePageUser(),{id}=await params;let record;try{record=await requireRecord(id,user)}catch{notFound()}const settings=await getSettings();return <main className={s.site}><div style={{background:"#0b1220",color:"white",padding:"16px 24px",display:"flex",justifyContent:"space-between",gap:16,flexWrap:"wrap"}}><strong>Private preview · {record.workflow.toLowerCase()}</strong><Link href={`/admin/${record.kind==='article'?'articles':record.kind==='product'?'products':'pages'}/${id}`}>Return to editor →</Link></div><article className={s.prose} style={{maxWidth:760,margin:"64px auto",padding:"0 24px"}}><p>Draft preview — only authorized editors can see this page.</p><h1>{record.data.title||"Untitled draft"}</h1><p>{record.data.excerpt}</p><ContentRenderer document={record.data.document} articleId={id} settings={settings}/></article></main>}

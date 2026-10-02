@@ -1,0 +1,2 @@
+interface SchedulerEnv { APP: {fetch(input:Request):Promise<Response>}; CRON_SECRET:string; SITE_URL:string }
+export default {async scheduled(_controller:unknown,env:SchedulerEnv){const response=await env.APP.fetch(new Request(`${env.SITE_URL}/api/jobs`,{method:"POST",headers:{Authorization:`Bearer ${env.CRON_SECRET}`}}));if(!response.ok)throw new Error(`Job endpoint returned ${response.status}`);}};
