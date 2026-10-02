@@ -27,7 +27,7 @@ export async function saveRecord(id:string,value:unknown,version:number,user:Use
 }
 const reservedPages=new Set(["admin","api","preview","blog","reviews","buying-guides","comparisons","guides","categories","authors","tags","search","contact","sitemap.xml","robots.txt","rss.xml","favicon.ico"]);
 export async function publishChecks(record:ContentRecord,data:ContentData):Promise<string[]>{
- const errors:string[]=[];if(record.isDemo)errors.push("Demo content cannot be published.");if(!data.title.trim())errors.push("Add a title.");if(!slugSchema.safeParse(data.slug).success)errors.push("Add a valid slug.");if(record.kind!=="product"&&!data.excerpt.trim())errors.push("Add an excerpt.");if(record.kind==="page"&&!data.ownerReviewed)errors.push("Confirm that the content and factual claims have been reviewed.");
+ const errors:string[]=[];if(record.isDemo)errors.push("Demo content cannot be published.");if(!data.title.trim())errors.push("Add a title.");if(!slugSchema.safeParse(data.slug).success)errors.push("Add a valid slug.");if(record.kind!=="product"&&!data.excerpt.trim())errors.push("Add an excerpt.");
  if(record.kind!=="product"&&!documentText(data.document).trim())errors.push("Write the article or page content.");
  if(record.kind==="page"&&reservedPages.has(data.slug))errors.push("This path is reserved for the application.");
  if(record.kind==="article"){
