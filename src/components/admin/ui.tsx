@@ -53,8 +53,8 @@ export function ConfirmHost() {
   const tone = request.tone || "default";
   const Icon = tone === "danger" ? TriangleAlert : tone === "publish" ? Send : CircleHelp;
   return <dialog ref={ref} className={s.confirm} data-tone={tone} aria-labelledby={`${id}-title`} aria-describedby={`${id}-message`} onCancel={e => { e.preventDefault(); finish(false); }} onClick={e => { if (e.target === e.currentTarget) finish(false); }}>
-    <div className={s.confirmPanel}><span className={s.confirmIcon}><Icon size={21} strokeWidth={1.9} /></span><h2 id={`${id}-title`}>{request.title}</h2><p id={`${id}-message`}>{request.message}</p>
-      <div className={s.confirmActions}>{request.cancelLabel !== null && <button type="button" className={s.secondary} onClick={() => finish(false)} data-initial-focus={tone === "danger" || undefined}>{request.cancelLabel || "Cancel"}</button>}<button type="button" className={s.button} onClick={() => finish(true)} data-initial-focus={tone !== "danger" || request.cancelLabel === null || undefined}>{request.confirmLabel || "Confirm"}</button></div>
+    <div className={s.confirmPanel}>{request.cancelLabel !== null && <button type="button" className={s.confirmClose} onClick={() => finish(false)} aria-label="Close dialog"><X size={17} /></button>}<span className={s.confirmIcon}><Icon size={26} strokeWidth={1.9} /></span><h2 id={`${id}-title`}>{request.title}</h2><p id={`${id}-message`}>{request.message}</p>
+      <div className={s.confirmActions}>{request.cancelLabel !== null && <button type="button" className={s.confirmCancel} onClick={() => finish(false)} data-initial-focus={tone === "danger" || undefined}>{request.cancelLabel || "Cancel"}</button>}<button type="button" className={s.confirmOk} onClick={() => finish(true)} data-initial-focus={tone !== "danger" || request.cancelLabel === null || undefined}>{request.confirmLabel || "Confirm"}</button></div>
     </div>
   </dialog>;
 }
