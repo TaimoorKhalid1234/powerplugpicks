@@ -29,9 +29,9 @@
   },
   "dependencies": {
     "@opennextjs/cloudflare": "1.20.7",
+    "@tiptap/extension-image": "latest",
     "@tiptap/extension-link": "latest",
     "@tiptap/extension-placeholder": "latest",
-    "@tiptap/extension-image": "latest",
     "@tiptap/extension-table": "latest",
     "@tiptap/react": "latest",
     "@tiptap/starter-kit": "latest",
@@ -52,6 +52,7 @@
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
+    "esbuild": "0.28.2",
     "eslint": "latest",
     "eslint-config-next": "16.3.8",
     "tailwindcss": "latest",
@@ -59,5 +60,7 @@
     "vitest": "latest",
     "wrangler": "4.145.0"
   },
-  "engines": { "node": ">=22.0.0" }
+  "engines": {
+    "node": ">=22.0.0"
+  }
 }
