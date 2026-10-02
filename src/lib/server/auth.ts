@@ -72,7 +72,7 @@ export async function getAuth(options: { bootstrap?: boolean; provisioningRole?:
     advanced: {
       useSecureCookies: new URL(env.BETTER_AUTH_URL).protocol === "https:",
       defaultCookieAttributes: { httpOnly: true, sameSite: "lax", path: "/" },
-      ipAddress: { ipAddressHeaders: env.APP_ENV === "production" ? ["cf-connecting-ip"] : ["x-forwarded-for"] },
+      ipAddress: { ipAddressHeaders: env.APP_ENV === "development" ? ["x-forwarded-for"] : ["cf-connecting-ip"] },
     },
     rateLimit: {
       enabled: true, storage: "database", window: 60, max: 60,

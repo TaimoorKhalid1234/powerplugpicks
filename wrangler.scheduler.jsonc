@@ -5,6 +5,6 @@
  "compatibility_date":"2026-09-01",
  "triggers":{"crons":["*/5 * * * *"]},
  "services":[{"binding":"APP","service":"powerplugpicks"}],
- "vars":{"SITE_URL":"https://powerplugpicks.com"},
+ "vars":{"SITE_URL":"https://powerplugpicks.powerplugpicks.workers.dev"},
  "observability":{"enabled":true}
 }
