@@ -94,7 +94,7 @@ export async function getAuth(options: { bootstrap?: boolean; provisioningRole?:
       } } },
     },
     plugins: [
-      twoFactor({ issuer: "PowerPlugPicks", backupCodeOptions: { amount: 10 } }),
+      twoFactor({ issuer: "PowerPlugPicks", backupCodeOptions: { amount: 10 }, trustDeviceMaxAge: 30 * 24 * 60 * 60 }),
       admin({ defaultRole: "AUTHOR", adminRoles: ["OWNER", "ADMIN"], roles: { OWNER: adminAc, ADMIN: adminAc, EDITOR: userAc, AUTHOR: userAc, ANALYST: userAc } }),
     ],
   });

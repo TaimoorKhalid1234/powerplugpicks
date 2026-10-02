@@ -10,6 +10,7 @@ export function LoginForm({ emailConfigured, resetToken, resetError, invitation 
   function signedIn() { router.replace("/admin"); router.refresh(); }
   const [mode, setMode] = useState<"login" | "challenge" | "forgot" | "reset">(resetToken ? "reset" : "login");
   const [backup, setBackup] = useState(false);
+  const [trustDevice, setTrustDevice] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(resetError ? "This reset link has expired or is invalid. Request a new one." : "");
   const [message, setMessage] = useState("");
@@ -21,7 +22,7 @@ export function LoginForm({ emailConfigured, resetToken, resetError, invitation 
         const result = await authRequest<{ twoFactorRedirect?: boolean }>("sign-in/email", { email: data.get("email"), password: data.get("password"), rememberMe: false });
         if (result.twoFactorRedirect) setMode("challenge"); else signedIn();
       } else if (mode === "challenge") {
-        await authRequest(backup ? "two-factor/verify-backup-code" : "two-factor/verify-totp", { code: String(data.get("code")).trim(), trustDevice: false });
+        await authRequest(backup ? "two-factor/verify-backup-code" : "two-factor/verify-totp", { code: String(data.get("code")).trim(), trustDevice });
         signedIn();
       } else if (mode === "forgot") {
         await authRequest("request-password-reset", { email: data.get("email"), redirectTo: `${window.location.origin}/admin/login` });
@@ -43,6 +44,7 @@ export function LoginForm({ emailConfigured, resetToken, resetError, invitation 
       {(mode === "login" || mode === "forgot") && <label className="form-field">Email address<input className="input" type="email" name="email" autoComplete="username" maxLength={254} required /></label>}
       {(mode === "login" || mode === "reset") && <label className="form-field">{mode === "reset" ? "New password" : "Password"}<input className="input" type="password" name="password" autoComplete={mode === "reset" ? "new-password" : "current-password"} minLength={mode === "reset" ? 12 : undefined} maxLength={128} required /></label>}
       {mode === "challenge" && <label className="form-field">{backup ? "Recovery code" : "Authenticator code"}<input className="input" type="text" name="code" inputMode={backup ? "text" : "numeric"} autoComplete="one-time-code" maxLength={64} required autoFocus /></label>}
+      {mode === "challenge" && <label className="form-check"><input type="checkbox" checked={trustDevice} onChange={e => setTrustDevice(e.target.checked)} /><span>Trust this device for 30 days<small>You won’t be asked for a code here again until then. Leave this off on shared computers.</small></span></label>}
       {error && <p className="form-error" role="alert">{error}</p>}
       {message && <p className="notice" role="status">{message}</p>}
       <button className="button button-primary" disabled={busy}>{busy ? "Please wait…" : mode === "challenge" ? "Verify and sign in" : mode === "forgot" ? "Send reset link" : mode === "reset" ? "Save new password" : "Sign in"}</button>
