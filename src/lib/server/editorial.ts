@@ -2,7 +2,7 @@ import "server-only";
 import { getDB } from "./db";
 import { getRecord, getPublicProduct, listCategories, listAuthors } from "./content";
 import { parseContent, slugSchema } from "@/lib/validation";
-import { collectDocumentRefs, contentPath, documentText } from "@/lib/content";
+import { amazonDestination, collectDocumentRefs, contentPath, documentText } from "@/lib/content";
 import { defaultContent, type ContentData, type ContentKind, type ContentRecord } from "@/lib/types";
 import type { User } from "./auth";
 
@@ -27,14 +27,14 @@ export async function saveRecord(id:string,value:unknown,version:number,user:Use
 }
 const reservedPages=new Set(["admin","api","preview","blog","reviews","buying-guides","comparisons","guides","categories","authors","tags","search","contact","sitemap.xml","robots.txt","rss.xml","favicon.ico"]);
 export async function publishChecks(record:ContentRecord,data:ContentData):Promise<string[]>{
- const errors:string[]=[];if(record.isDemo)errors.push("Demo content cannot be published.");if(!data.title.trim())errors.push("Add a title.");if(!slugSchema.safeParse(data.slug).success)errors.push("Add a valid slug.");if(!data.excerpt.trim())errors.push("Add an excerpt.");if(!data.ownerReviewed)errors.push("Confirm that the content and factual claims have been reviewed.");
+ const errors:string[]=[];if(record.isDemo)errors.push("Demo content cannot be published.");if(!data.title.trim())errors.push("Add a title.");if(!slugSchema.safeParse(data.slug).success)errors.push("Add a valid slug.");if(record.kind!=="product"&&!data.excerpt.trim())errors.push("Add an excerpt.");if(record.kind!=="product"&&!data.ownerReviewed)errors.push("Confirm that the content and factual claims have been reviewed.");
  if(record.kind!=="product"&&!documentText(data.document).trim())errors.push("Write the article or page content.");
  if(record.kind==="page"&&reservedPages.has(data.slug))errors.push("This path is reserved for the application.");
  if(record.kind==="article"){
   const [categories,authors]=await Promise.all([listCategories(),listAuthors()]);if(!data.categoryIds.length||data.categoryIds.some(id=>!categories.some(c=>c.id===id)))errors.push("Select active categories.");const author=authors.find(a=>a.id===data.authorId);if(!author?.biography.trim())errors.push("Choose an author with a real biography.");if(!data.researchBasis.trim())errors.push("Describe the research or testing basis.");if(["REVIEW","BUYING_GUIDE","COMPARISON"].includes(data.articleType)&&!data.sources.length)errors.push("Add evidence sources for product recommendations.");
  }
  if(record.kind==="product"){
-  if(!data.brand.trim())errors.push("Add the product brand.");if(!data.sources.length)errors.push("Add product sources and verification dates.");if(data.specifications.some(s=>s.value&&!s.sourceUrl))errors.push("Every product specification needs a source URL.");
+  if(!data.amazonUrl||!amazonDestination(data,""))errors.push("Add the product's Amazon.com URL.");if(!data.image)errors.push("Upload a product image.");if(data.specifications.some(s=>s.value&&!s.sourceUrl))errors.push("Every product specification needs a source URL.");
  }
  if(data.sources.some(s=>!s.title.trim()||!s.verifiedAt||Number.isNaN(Date.parse(s.verifiedAt))))errors.push("Sources need a title and verification date.");
  const refs=collectDocumentRefs(data.document);const db=await getDB();
