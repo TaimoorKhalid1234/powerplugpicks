@@ -8,7 +8,7 @@ import { ArrowLeft, ImagePlus, Save, Send, Trash2, X } from "lucide-react";
 import { defaultContent, type ContentData, type ContentRecord, type MediaAsset, type Role } from "@/lib/types";
 import { slugify } from "@/lib/content";
 import { adminApi, errorMessage } from "./api";
-import { Badge, Card, Field, Loading, Notice, PageHeading } from "./ui";
+import { Badge, Card, confirmAction, Field, Loading, Notice, PageHeading } from "./ui";
 import s from "./admin.module.css";
 
 const amazonHosts = ["amazon.com", "www.amazon.com", "amzn.to"];
@@ -63,7 +63,7 @@ export function ProductEditor({ id, role }: { id: string; role: Role }) {
     return result.record;
   }
   async function run(action: "save" | "publish" | "unpublish" | "trash") {
-    if (action === "trash" && !window.confirm("Move this product to trash? Products used by live articles cannot be removed.")) return;
+    if (action === "trash" && !await confirmAction({ title: "Move this product to trash?", message: "Products used by live articles cannot be removed.", confirmLabel: "Move to trash", tone: "danger" })) return;
     setBusy(action); setFailure(""); setMessage("");
     try {
       const saved = action === "save" || action === "publish" ? await save() : record;

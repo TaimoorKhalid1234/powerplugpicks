@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { adminApi, errorMessage, friendly, useResource } from "./api";
-import { Badge, Empty, Field, Loading, Modal, Notice, PageHeading } from "./ui";
+import { Badge, confirmAction, Empty, Field, Loading, Modal, Notice, PageHeading } from "./ui";
 import s from "./admin.module.css";
 
 interface TaxonomyRecord { id: string; name: string; slug: string; description?: string; parentId?: string | null; icon?: string; sortOrder?: number; visible?: boolean; seoTitle?: string; seoDescription?: string; indexable?: boolean; biography?: string; image?: string; links?: string[]; userId?: string | null; attributes?: { key: string; label: string; unit: string; type: "text" | "number" | "boolean" }[] }
@@ -24,7 +24,7 @@ export function TaxonomyManager({ section }: { section: "categories" | "tags" | 
     try { await adminApi(`/api/admin/${section}${editing.id ? `/${editing.id}` : ""}`, { method: editing.id ? "PATCH" : "POST", body: JSON.stringify({ ...editing, links: editing.links?.filter(Boolean) }) }); setMessage(`${friendly(singular)} saved.`); setEditing(null); await refresh(); } catch (e) { setFailure(errorMessage(e)); } finally { setBusy(false); }
   }
   async function remove(item: TaxonomyRecord) {
-    if (!window.confirm(`Delete “${item.name}”? Records that are still in use cannot be deleted.`)) return;
+    if (!await confirmAction({ title: `Delete “${item.name}”?`, message: "Records that are still in use cannot be deleted.", confirmLabel: "Delete", tone: "danger" })) return;
     setFailure("");
     try { await adminApi(`/api/admin/${section}/${item.id}`, { method: "DELETE" }); setMessage(`${friendly(singular)} deleted.`); await refresh(); } catch (e) { setFailure(errorMessage(e)); }
   }

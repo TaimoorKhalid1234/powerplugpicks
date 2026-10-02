@@ -1,7 +1,7 @@
 "use client";
 
-import { type ReactNode, useEffect, useRef } from "react";
-import { AlertCircle, CheckCircle2, FileText, LoaderCircle, X } from "lucide-react";
+import { type ReactNode, useEffect, useId, useRef, useState } from "react";
+import { AlertCircle, CheckCircle2, CircleHelp, FileText, LoaderCircle, Send, TriangleAlert, X } from "lucide-react";
 import { friendly } from "./api";
 import s from "./admin.module.css";
 
@@ -35,4 +35,26 @@ export function Modal({ title, children, footer, close }: { title: string; child
     return () => { document.removeEventListener("keydown", key); previous?.focus(); };
   }, [close]);
   return <div className={s.modalBackdrop} onMouseDown={e => { if (e.target === e.currentTarget) close(); }}><div className={s.modal} ref={ref} role="dialog" aria-modal="true" aria-label={title}><div className={s.modalHeader}><h2>{title}</h2><button className={s.iconButton} onClick={close} aria-label="Close dialog"><X size={19} /></button></div><div className={s.modalBody}>{children}</div>{footer && <div className={s.modalFooter}>{footer}</div>}</div></div>;
+}
+
+export interface ConfirmOptions { title: string; message: string; confirmLabel?: string; cancelLabel?: string | null; tone?: "default" | "danger" | "publish" }
+type ConfirmRequest = ConfirmOptions & { resolve: (confirmed: boolean) => void };
+let openConfirm: ((request: ConfirmRequest) => void) | null = null;
+export function confirmAction(options: ConfirmOptions) { return new Promise<boolean>(resolve => { if (openConfirm) openConfirm({ ...options, resolve }); else resolve(window.confirm(options.message)); }); }
+export function ConfirmHost() {
+  const [request, setRequest] = useState<ConfirmRequest | null>(null);
+  const pending = useRef<ConfirmRequest | null>(null);
+  const ref = useRef<HTMLDialogElement>(null);
+  const id = useId();
+  useEffect(() => { openConfirm = next => { pending.current?.resolve(false); pending.current = next; setRequest(next); }; return () => { openConfirm = null; pending.current?.resolve(false); pending.current = null; }; }, []);
+  useEffect(() => { const dialog = ref.current; if (!request || !dialog) return; if (!dialog.open) dialog.showModal(); dialog.querySelector<HTMLElement>("[data-initial-focus]")?.focus(); }, [request]);
+  function finish(confirmed: boolean) { pending.current?.resolve(confirmed); pending.current = null; ref.current?.close(); setRequest(null); }
+  if (!request) return null;
+  const tone = request.tone || "default";
+  const Icon = tone === "danger" ? TriangleAlert : tone === "publish" ? Send : CircleHelp;
+  return <dialog ref={ref} className={s.confirm} data-tone={tone} aria-labelledby={`${id}-title`} aria-describedby={`${id}-message`} onCancel={e => { e.preventDefault(); finish(false); }} onClick={e => { if (e.target === e.currentTarget) finish(false); }}>
+    <div className={s.confirmPanel}><span className={s.confirmIcon}><Icon size={21} strokeWidth={1.9} /></span><h2 id={`${id}-title`}>{request.title}</h2><p id={`${id}-message`}>{request.message}</p>
+      <div className={s.confirmActions}>{request.cancelLabel !== null && <button type="button" className={s.secondary} onClick={() => finish(false)} data-initial-focus={tone === "danger" || undefined}>{request.cancelLabel || "Cancel"}</button>}<button type="button" className={s.button} onClick={() => finish(true)} data-initial-focus={tone !== "danger" || request.cancelLabel === null || undefined}>{request.confirmLabel || "Confirm"}</button></div>
+    </div>
+  </dialog>;
 }

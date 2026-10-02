@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowDown, ArrowLeft, ArrowUp, CalendarClock, Copy, Download, Eye, Plus, Save, Search, Trash2 } from "lucide-react";
 import { ARTICLE_TYPES, defaultContent, type Author, type Category, type ContentData, type ContentKind, type ContentRecord, type DocNode, type ListResult, type Role } from "@/lib/types";
 import { adminApi, ApiError, dateLabel, errorMessage, friendly, useResource } from "./api";
-import { Badge, Card, Field, Loading, Modal, Notice, PageHeading } from "./ui";
+import { Badge, Card, confirmAction, Field, Loading, Modal, Notice, PageHeading } from "./ui";
 import { RichTextEditor } from "./RichTextEditor";
 import { scheduledInstant, scheduleLabel } from "./schedule";
 import s from "./admin.module.css";
@@ -87,7 +87,8 @@ export function ContentEditor({ id, kind, role = "EDITOR", timezone = "Asia/Kara
   useEffect(() => {
     const hasChanges = () => JSON.stringify(dataRef.current) !== savedRef.current;
     const unload = (event: BeforeUnloadEvent) => { if (hasChanges()) event.preventDefault(); };
-    const navigate = (event: MouseEvent) => { const anchor = (event.target as Element)?.closest("a[href]") as HTMLAnchorElement | null; if (!anchor || anchor.target === "_blank" || anchor.hasAttribute("download") || anchor.href === window.location.href || event.ctrlKey || event.metaKey) return; if (hasChanges() && !window.confirm("You have unsaved changes. Leave this editor without saving them?")) { event.preventDefault(); event.stopPropagation(); } };
+    let leaving = false;
+    const navigate = (event: MouseEvent) => { const anchor = (event.target as Element)?.closest("a[href]") as HTMLAnchorElement | null; if (!anchor || anchor.target === "_blank" || anchor.hasAttribute("download") || anchor.href === window.location.href || event.ctrlKey || event.metaKey) return; if (leaving) { leaving = false; return; } if (!hasChanges()) return; event.preventDefault(); event.stopPropagation(); void confirmAction({ title: "Leave without saving?", message: "You have unsaved changes in this editor. If you leave now, they will be lost.", confirmLabel: "Leave page", cancelLabel: "Keep editing", tone: "danger" }).then(confirmed => { if (confirmed) { leaving = true; anchor.click(); } }); };
     window.addEventListener("beforeunload", unload); document.addEventListener("click", navigate, true); return () => { window.removeEventListener("beforeunload", unload); document.removeEventListener("click", navigate, true); };
   }, []);
   function update<K extends keyof ContentData>(key: K, value: ContentData[K]) {
@@ -95,10 +96,17 @@ export function ContentEditor({ id, kind, role = "EDITOR", timezone = "Asia/Kara
     const next = { ...dataRef.current, [key]: value }; dataRef.current = next; setData(next); setMessage(""); if (statusRef.current !== "conflict") setSaveStatus("unsaved");
   }
   function updateDocument(document: DocNode) { const next = { ...dataRef.current, document, productIds: [...new Set([...dataRef.current.productIds, ...extractProductIds(document)])] }; dataRef.current = next; setData(next); if (statusRef.current !== "conflict") setSaveStatus("unsaved"); }
-  async function reloadLatest() { if (!recordRef.current || !window.confirm("Load the latest server revision? This replaces your unsaved changes. Download your draft first if you need to keep a copy.")) return; try { const result = await adminApi<EditorResponse>(`/api/admin/content/${recordRef.current.id}`); adoptRecord(result.record); setRevisions(result.revisions); setSaveStatus("saved"); setFailure(""); } catch (e) { setFailure(errorMessage(e)); } }
+  async function reloadLatest() { if (!recordRef.current || !await confirmAction({ title: "Load the latest revision?", message: "This replaces your unsaved changes with the latest server revision. Download your draft first if you need to keep a copy.", confirmLabel: "Load latest", tone: "danger" })) return; try { const result = await adminApi<EditorResponse>(`/api/admin/content/${recordRef.current.id}`); adoptRecord(result.record); setRevisions(result.revisions); setSaveStatus("saved"); setFailure(""); } catch (e) { setFailure(errorMessage(e)); } }
   function downloadDraft() { const url = URL.createObjectURL(new Blob([JSON.stringify(dataRef.current, null, 2)], { type: "application/json" })); const link = document.createElement("a"); link.href = url; link.download = `${dataRef.current.slug || "unsaved-draft"}.json`; link.click(); URL.revokeObjectURL(url); }
   async function workflow(action: string, extra: Record<string, unknown> = {}) {
-    if (["publish", "unpublish", "archive", "trash", "restoreRevision"].includes(action) && !window.confirm(action === "publish" ? "Publish this reviewed revision? It will become visible to readers if all publication checks pass." : action === "restoreRevision" ? "Restore this revision as the active draft? Your current draft will remain in revision history." : `${friendly(action)} this ${kind}?`)) return;
+    const confirmations: Record<string, Parameters<typeof confirmAction>[0]> = {
+      publish: { title: `Publish this ${kind}?`, message: "This reviewed revision will become visible to readers as soon as all publication checks pass.", confirmLabel: "Publish", tone: "publish" },
+      restoreRevision: { title: "Restore this revision?", message: "It will become the active draft. Your current draft stays in revision history.", confirmLabel: "Restore revision" },
+      unpublish: { title: `Unpublish this ${kind}?`, message: "It will be removed from the live site. You can publish it again later.", confirmLabel: "Unpublish", tone: "danger" },
+      archive: { title: `Archive this ${kind}?`, message: "It will be archived and removed from the live site.", confirmLabel: "Archive", tone: "danger" },
+      trash: { title: `Move this ${kind} to trash?`, message: "It will be moved to trash and removed from the live site.", confirmLabel: "Move to trash", tone: "danger" },
+    };
+    if (confirmations[action] && !await confirmAction(confirmations[action])) return;
     setBusyAction(action); setMessage(""); setFailure(""); setValidation([]);
     try {
       const active = action === "cancelSchedule" || action === "restore" ? recordRef.current : await saveDraft(true);

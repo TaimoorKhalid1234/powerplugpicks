@@ -6,6 +6,7 @@ import { useState, useSyncExternalStore, type ReactNode } from "react";
 import { Activity, ArrowUpRight, BarChart3, BookOpen, ChevronRight, CircleHelp, FileText, FolderTree, Home, Image, LayoutDashboard, Link2, LogOut, Mail, Menu, Moon, Navigation, Package, PenLine, Search, Settings, ShieldCheck, Sun, Tags, Users, Zap } from "lucide-react";
 import type { Role } from "@/lib/types";
 import { adminApi } from "./api";
+import { confirmAction, ConfirmHost } from "./ui";
 import s from "./admin.module.css";
 
 const groups = [
@@ -23,7 +24,7 @@ export function AdminShell({ children, user }: { children: ReactNode; user: { na
   const theme = useSyncExternalStore(subscribeTheme, themeSnapshot, () => "light");
   const [open, setOpen] = useState(false);
   function toggleTheme() { const next = theme === "light" ? "dark" : "light"; localStorage.setItem("ppp-admin-theme", next); window.dispatchEvent(new Event("ppp-theme")); }
-  async function signOut() { try { await adminApi("/api/auth/sign-out", { method: "POST", body: "{}" }); router.replace("/admin/login"); router.refresh(); } catch { window.alert("Sign out did not complete. Please try again."); } }
+  async function signOut() { try { await adminApi("/api/auth/sign-out", { method: "POST", body: "{}" }); router.replace("/admin/login"); router.refresh(); } catch { void confirmAction({ title: "Sign out didn’t complete", message: "Please check your connection and try again.", confirmLabel: "OK", cancelLabel: null, tone: "danger" }); } }
   const title = groups.flatMap(group => group.items).find(item => item.slug === section)?.name || "Editor";
   const privileged = ["OWNER", "ADMIN"].includes(user.role);
   function visible(slug: string) {
@@ -40,5 +41,6 @@ export function AdminShell({ children, user }: { children: ReactNode; user: { na
       <div className={s.sidebarBottom}><div className={s.actionRow}><span className={s.avatar}>{user.name?.slice(0, 2).toUpperCase() || "PP"}</span><div><strong>{user.name || "Your account"}</strong><div style={{ fontSize: 10, textTransform: "capitalize" }}>{user.role.toLowerCase()}</div></div><button className={s.iconButton} onClick={() => void signOut()} title="Sign out" aria-label="Sign out"><LogOut size={16} /></button></div></div>
     </aside>
     <div className={s.main}><header className={s.topbar}><div className={s.breadcrumb}><button className={`${s.iconButton} ${s.mobileMenu}`} aria-label="Open navigation" onClick={() => setOpen(true)}><Menu size={20} /></button><span>Workspace</span><ChevronRight size={12} /><strong>{title}</strong>{pathname.split("/").length > 3 && <><ChevronRight size={12} /><span>Editor</span></>}</div><div className={s.topActions}><Link className={s.secondary} href="/" target="_blank">View website <ArrowUpRight size={14} /></Link><button className={s.iconButton} onClick={toggleTheme} aria-label={`Use ${theme === "light" ? "dark" : "light"} theme`}>{theme === "light" ? <Moon size={18} /> : <Sun size={18} />}</button><span className={s.avatar}>{user.name?.slice(0, 2).toUpperCase() || "PP"}</span></div></header><main className={s.content}>{children}</main></div>
+    <ConfirmHost />
   </div>;
 }
