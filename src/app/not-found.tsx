@@ -1,2 +1,6 @@
 import Link from "next/link";
-export default function NotFound(){return <main className="auth-card"><p className="muted">404 · PAGE NOT FOUND</p><h1>A loose connection.</h1><p>This page isn’t available. Explore our categories to find your way back.</p><Link className="button button-primary" href="/">Back to home</Link></main>}
+import { BrandMark } from "@/components/public/illustrations";
+import { NotFoundView } from "@/components/public/NotFoundView";
+import s from "@/components/public/public.module.css";
+
+export default function NotFound(){return <div className={s.site}><header className={s.header}><div className={`${s.wrap} ${s.headerInner}`}><Link href="/" className={s.brand} aria-label="PowerPlugPicks home"><BrandMark className={s.brandMark}/><span>PowerPlug<strong>Picks</strong></span></Link></div></header><main id="main-content"><NotFoundView/></main></div>}
